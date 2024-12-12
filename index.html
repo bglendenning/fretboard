@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+        <title>fretboard project</title>
+        <style>
+            body {
+                margin: 10px 0;
+                padding: 0;
+                text-align: center;
+            }
+            
+            .note {
+                text-align: center;
+                width: 30px;
+                height: 30px;
+            }
+            
+            .float-left {
+                float: left;
+            }
+            
+            div#body {
+                display: inline-block;
+                text-align: center;
+            }
+            
+            div#controls {
+                display: inline-block;
+                margin-top: 5px;
+            }
+            
+            table {
+                border: 0;
+                border-spacing: 5px;
+                border-collapse: separate;
+                margin: 0;
+                padding: 0;
+            }
+            
+            table td {
+                border: 2px solid #555555;
+                text-align: center;
+            }
+            
+            table td.tuning {
+                border: 0px;
+            }
+            
+            table th {
+            }
+        </style>
+    </head>
+    <body onload="setup()">
+        <div id="body">
+            <div id="content">
+                <table id="fretboard">
+                    <thead>
+                        <tr></tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+                <div id="controls">
+                    <a href="#" onclick="tableRowsStringCreate()">add a string</a>
+                    <label for="tuning">tuning</label>
+                    <select name="tuning" id="tuning" onchange="tuningSet()">
+                        <option value="0">eadgbe - standard</option>
+                        <option value="1">dadgbe - drop d</option>
+                        <option value="2">dadgbd - double drop d</option>
+                        <option value="3">dadgad - celtic</option>
+                    </select>
+                    <label for="scale">scale</label>
+                    <select name="scale" id="scale" onchange="scaleSet()">
+                        <option value="0">aeolian (natural minor)</option>
+                        <option value="1">locrian</option>
+                        <option value="2">ionian (major)</option>
+                        <option value="3">dorian</option>
+                        <option value="4">phrygian</option>
+                        <option value="5">lydian</option>
+                        <option value="6">mixolydian</option>
+                    </select>
+                    <label for="rootNote">root note</label>
+                    <select name="rootNote" id="rootNote" onchange="rootNoteSet()">
+                        <option value="0">A</option>
+                        <option value="1">A#/Bb</option>
+                        <option value="2">B/Cb</option>
+                        <option value="3">C</option>
+                        <option value="4">C#/Db</option>
+                        <option value="5">D</option>
+                        <option value="6">D#/Eb</option>
+                        <option value="7">E/Fb</option>
+                        <option value="8">F</option>
+                        <option value="9">F#/Gb</option>
+                        <option value="10">G</option>
+                        <option value="11">G#/Ab</option>
+                    </select>
+                    <label for "fretsNumber">number of frets</label>
+                    <select name="fretsNumber" id="fretsNumber" onchange="fretsSet()">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                        <option value="13">13</option>
+                        <option value="14">14</option>
+                        <option value="15">15</option>
+                        <option value="16">16</option>
+                        <option value="17">17</option>
+                        <option value="18">18</option>
+                        <option value="19">19</option>
+                        <option value="20">20</option>
+                        <option value="21">21</option>
+                        <option value="22">22</option>
+                        <option value="23">23</option>
+                        <option value="24" selected="selected">24</option>
+                        <option value="25">25</option>
+                        <option value="26">26</option>
+                        <option value="27">27</option>
+                        <option value="28">28</option>
+                    </select>
+                    <a href="#" onclick="refresh()">refresh</a>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            // html elements
+            
+            var table = document.getElementById("fretboard");
+            
+            var scales = [
+                [1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0], // aeolian (natural minor)
+                [1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0], // locrian
+                [1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1], // ionian (major)
+                [1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0], // dorian
+                [1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0], // phrygian
+                [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1], // lydian
+                [1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0], // mixolydian
+            ]
+            
+            var tunings = [
+                [7, 2, 10, 5, 0, 7], // standard (eadgbe)
+                [7, 2, 10, 5, 0, 5], // drop d (dadgbe)
+                [5, 2, 10, 5, 0, 5], // double drop d (dadgbd)
+                [5, 0, 10, 5, 0, 5], // celtic (dadgad)
+            ]
+            
+            var frets = 24;
+            
+            /*
+                tuning
+                0  1  2  3  4  5  6  7  8  9  10 11
+                A  A# B  C  C# D  D# E  F  F# G  G#
+            */
+            
+            var notes = ["A", "A#/Bb", "B/Cb", "C", "C#/Db", "D", "D#/Eb", "E/Fb", "F", "F#/Gb", "G", "G#/Ab"];
+            var scale = scales[0];
+            var tuning = [0, 0, 0, 0, 0, 0];
+            var rootNote = 0;
+            
+            function arrayShift(array, shift) {
+                array = array.slice() // slice a copy of array element
+                
+                if (shift < 0) {
+                    for (var i = 0; i > shift; i--) {
+                        array.push(array.shift()); // remove first element and replace it at end of array
+                    }
+                } else {
+                    for (var i = 0; i < shift; i++) {
+                        array.unshift(array.pop()); // remove last element and replace it at beginning of array
+                    }
+                }
+                
+                return array
+            }
+            
+            function scaleSet() {
+                elementScale = document.getElementById("scale");
+                
+                scale = scales[elementScale.value].slice(); // slice copy of array element
+                
+                populate();
+            }
+            
+            function tuningSet() {
+                elementTuning = document.getElementById("tuning");
+                for (var i = 0; i < tableRowsStringsCount(); i++) {
+                    var tuningCurrent = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr')[i].getElementsByTagName('select')[0];
+                    tuningCurrent.selectedIndex = tunings[elementTuning.value][i]
+                }
+                
+                populate();
+            }
+            
+            function tuningStringUpdate(element) {
+                tuning[element.id] = element.value;
+                
+                populate();
+            }
+            
+            function rootNoteSet() {
+                elementRootNote = document.getElementById("rootNote");
+                rootNote = elementRootNote.value;
+                
+                populate();
+            }
+            
+            function depopulate() {
+                for (var i = 0; i < tableRowsStringsCount(); i++) {
+                    for (var n = 0; n <= frets; n++) {
+                        table.rows[i + 1].cells[n + 1].innerHTML = "";
+                    }
+                }
+            }
+            
+            function populate() {
+                depopulate();
+                
+                /*
+                    scaleCurrent is assigned by shifting the selected scale interval pattern array (major, minor, etc.)
+                    until the start of the scale interval pattern is aligned to the position of the selected root note 
+                    in the set of static root notes:
+                    
+                        0  1  2  3  4  5  6  7  8  9  10 11
+                        a  a# b  c  c# d  d# e  f  f# g  g#
+                    
+                    if root note is a, then scale interval pattern will not shift. assuming major, the pattern is:
+                        
+                        a  a# b  c  c# d  d# e  f  f# g  g#
+                        1  0  1  0  1  1  0  1  0  1  0  1
+                        w     w     h  w     w     w     h (whole whole half whole whole whole half)
+                        ^ interval pattern starts
+                    
+                    if root note is b, then scale interval pattern shifts 2 positions to the right:
+                    
+                        a  a# b  c  c# d  d# e  f  f# g  g#
+                        0  1  1  0  1  0  1  1  0  1  0  1
+                           h  w     w     h  w     w     w
+                              ^ interval pattern starts
+                    
+                    if the root note is d, then the scale interval pattern will shift 5 to the right, and so on.
+                */
+                
+                scaleCurrent = arrayShift(scale, rootNote);
+                
+                // loop through tuning array elements to determine the note layout for each string
+                for (var i = 0; i < tableRowsStringsCount(); i++) {
+                    /*
+                        scaleCurrentShifted is assigned by shifting scaleCurrent to the left x positions, where x is
+                        equivalent to place value of string tuning. to demonstrate, assuming current root note of 'a',
+                        and current scale of 'major', and current tuning of 'e a d g b e':
+                        
+                        scaleCurrent:
+                        a  a# b  c  c# d  d# e  f  f# g  g#
+                        1  0  1  0  1  1  0  1  0  1  0  1
+                        ^ interval pattern starts
+                        
+                        shifting scale interval pattern left by value of 'e' (7), gives:
+                        
+                        e  f  f# g  g# a  a# b  c  c# d  d#
+                        1  0  1  0  1  1  0  1  0  1  1  0
+                                       ^ interval pattern starts
+                        
+                        thus, scale patern is maintained relative to root note.
+                    */
+                    
+                    var tuningCurrent = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr')[i].getElementsByTagName('select')[0].options[table.getElementsByTagName('tbody')[0].getElementsByTagName('tr')[i].getElementsByTagName('select')[0].selectedIndex].value;
+                    var scaleCurrentShifted = arrayShift(scaleCurrent, -tuningCurrent);
+
+                    // place an x for each fret position belonging to the scale                    
+                    
+                    for (var n = 0; n <= frets; n++) {
+                        if (scaleCurrentShifted[0] == 1) {
+                            table.rows[i + 1].cells[n + 1].innerHTML = "X";
+                        }
+                        /*
+                            shift scaleCurrentShifted one to the left with each fret position processed
+                        */
+                        scaleCurrentShifted = arrayShift(scaleCurrentShifted, -1);
+                    }
+                }
+            }
+            
+            function setup() {
+                for (var i = 0; i < 6; i++) {
+                    tableRowsStringCreate();
+                }
+                fretsSet();
+                scaleSet();
+                tuningSet();
+                rootNoteSet();
+            }
+            
+            function refresh() {
+                scaleSet();
+                tuningSet();
+                rootNoteSet();
+            }
+            
+            /* html element creation */
+            
+            function tableRowsStringsCount() {
+                return table.getElementsByTagName('tbody')[0].rows.length;
+            }
+            
+            function tableCellsFretsCount() {
+                return table.getElementsByTagName('tbody')[0].getElementsByTagName('tr')[0].cells.length;
+            }
+            
+            function tableRowsStringCreate() {
+                var fretboard = document.getElementById('fretboard');
+                var rowsCount = tableRowsStringsCount('fretboard');
+                var tr = document.createElement('tr');
+
+                // tuning cell
+                var tdTuning = document.createElement('td');
+                var stringButtonRemove = document.createElement('input');
+                stringButtonRemove.type = 'button';
+                stringButtonRemove.value = 'x';
+                stringButtonRemove.onclick = function(){tableRowsStringRemove(tr)};
+                tdTuning.appendChild(stringButtonRemove);
+                tdTuning.appendChild(elementSelectTuningCreate(rowsCount));
+                tdTuning.className = 'tuning';
+                tr.appendChild(tdTuning);
+                
+                // fret cells
+                for (var i = 0; i <= frets; i++) {
+                    var trTd = document.createElement('td');
+                    trTd.className = 'note';
+                    tr.appendChild(trTd);
+                }
+                
+                fretboard.getElementsByTagName('tbody')[0].appendChild(tr);
+                
+                populate();
+            }
+            
+            function tableRowsStringRemove(tr) {
+                tr.parentNode.removeChild(tr);
+            }
+            
+            function elementSelectTuningCreate() {
+                var select = document.createElement('select');
+                var options = tuningOptionsPopulate();                
+                
+                for (var i = 0; i < options.length; i++) {
+                    select.options[i] = options[i];
+                }
+                select.onchange = function(){tuningStringUpdate(select);};
+                return select;
+            }
+            
+            function tuningOptionsPopulate() {
+                var tuningOptions = new Array();
+            
+                for (var i = 0; i < notes.length; i++) {
+                    tuningOptions[i] = new Option(notes[i], i);
+                }
+
+                return tuningOptions;
+            }
+
+            function fretsSet() {
+                frets = document.getElementById('fretsNumber').selectedIndex + 1;
+                var thead = fretboard.getElementsByTagName('thead')[0];
+                thead.innerHTML = "<tr></tr>";
+                var trTh = document.createElement('th');
+                thead.appendChild(trTh);
+                // fret header numbers
+                for (var i = 0; i <= frets; i++) {
+                    var trTh = document.createElement('th');
+                    trTh.innerHTML = i;
+                    thead.appendChild(trTh);
+                }
+                tableCellsUpdate();
+            }
+            
+            function tableCellsUpdate() {
+                var rowsCount = tableRowsStringsCount('fretboard');
+                var cellsCount = tableCellsFretsCount();
+                for (var i = 0; i < tableRowsStringsCount(); i++) {
+                    var rowCurrent = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr')[i]
+                    if (frets > cellsCount - 2) {
+                        for (var n = cellsCount - 1; n <= frets; n++) {
+                            var tdCurrent = document.createElement('td');
+                            tdCurrent.className = 'note';
+                            rowCurrent.appendChild(tdCurrent);
+                        }
+                    } else if (frets < cellsCount - 2) {
+                        for (var n = cellsCount - 2; n > frets; n--) {
+                            rowCurrent.removeChild(rowCurrent.getElementsByTagName('td')[n + 1]);
+                        }
+                    }
+                }
+                refresh();
+            }
+        </script>
+    </body>
+</html>
